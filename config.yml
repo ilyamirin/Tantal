@@ -28,3 +28,4 @@ auto_reload: 1
 
 path_to_storage: './storage'
 path_to_index: './index'
+max_elements: 10000000

@@ -3,13 +3,13 @@
 use Dancer;
 use Data::Dumper;
 use Digest::MurmurHash qw(murmur_hash);
+use MIME::Base64;
 use Modern::Perl;
-use Math::BigInt;
 use Tie::Cache;
 
 # -----init-----
 
-tie( my %cached_index, 'Tie::Cache', 1000000, { Debug => 1 });
+tie( my %cached_index, 'Tie::Cache', config->{max_elements}, { Debug => 0 });
 
 open (my $index, '<', config->{path_to_index}) or die $!;
 my $numbers;
@@ -18,8 +18,6 @@ while (read($index, $numbers, 16) > 0) {
    $cached_index{$murmur} = [$offset, $key_size, $value_size];
 }
 close $index;
-
-tie( my %state, 'Tie::Cache', 10, { Debug => 1 });
 
 # -----init end -----
 
@@ -59,14 +57,14 @@ sub insert_value {
     $cached_index{$murmur} = [$offset, $key_size, $value_size];    
 }
 
-get '/' => sub {
+get '/:collection/:key' => sub {
     info params->{key} . ' GETted';
-    return get_value(params->{key});
+    return encode_base64 get_value(params->{key});
 };
 
-post '/' => sub {
-    info params->{key} . ':'. params->{value} . ' POSTed';
-    insert_value(params->{key}, params->{value});
+post '/:collection' => sub {
+    info params->{key} . ': '. params->{value} . ' POSTed';
+    insert_value(params->{key}, decode_base64 params->{value});
     return 'OK';
 };
 
