@@ -9,15 +9,17 @@ use Tie::Cache;
 
 # -----init-----
 
-tie( my %cached_index, 'Tie::Cache', config->{max_elements}, { Debug => 0 });
+tie (my %cached_index, 'Tie::Cache', config->{max_elements}, { Debug => 0 });
 
-open (my $index, '<', config->{path_to_index}) or die $!;
+open (my $index, '<', config->{path_to_index}) || die "Cant load index: $!";
 my $numbers;
 while (read($index, $numbers, 16) > 0) {
-   my ($murmur, $offset, $key_size, $value_size) = unpack('L4', $numbers);
-   $cached_index{$murmur} = [$offset, $key_size, $value_size];
+    my ($murmur, $offset, $key_size, $value_size) = unpack('L4', $numbers);
+    $cached_index{$murmur} = [$offset, $key_size, $value_size];
 }
 close $index;
+
+tie (my %file_locks, 'Tie::Cache', (config->{max_collections} * 2), { Debug => 0 });
 
 # -----init end -----
 
@@ -28,13 +30,13 @@ sub get_value {
     my ($offset, $key_size, $value_size) = @{ $cached_index{$murmur} };
 
     my $result;
-    open (my $storage, '<', config->{path_to_storage}) or die $!;
+    open (my $storage, '<', config->{path_to_storage}) || die $!;
     seek $storage, $offset + $key_size, 1;
     read $storage, $result, $value_size;
     close $storage;
 
     return unpack('u', $result);
-  }
+}
  
 sub insert_value {
     my ($key, $value) = @_;
@@ -46,12 +48,12 @@ sub insert_value {
     my $key_size = length $printable_key;
     my $value_size = length $printable_value;
 
-    open (my $storage, '>>', config->{path_to_storage}) or die $!;
+    open (my $storage, '>>', config->{path_to_storage}) || die $!;
     print $storage $printable_key;
     print $storage $printable_value;
     close $storage;
        
-    open (my $index, '>>', config->{path_to_index}) or die $!;
+    open (my $index, '>>', config->{path_to_index}) || die $!;
     print $index pack('L4', $murmur, $offset, $key_size, $value_size); 
     close $index;
     $cached_index{$murmur} = [$offset, $key_size, $value_size];    
