@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 
 use Dancer;
+
+use Compress::Snappy;
 use Data::Dumper;
 use Digest::MurmurHash qw(murmur_hash);
 use File::Touch;
@@ -43,7 +45,7 @@ sub get_value {
     read $fh, $result, $value_size;
     close $fh;
 
-    return unpack('u', $result);
+    return unpack('u', decompress($result));
 }
  
 sub insert_value {
@@ -56,8 +58,8 @@ sub insert_value {
     
     my $murmur = murmur_hash($key);
     my $offset = -s $storage;
-    my $printable_key = pack 'u', $key;  
-    my $printable_value = pack 'u', $value;  
+    my $printable_key = compress(pack('u', $key));  
+    my $printable_value = compress(pack('u', $value));
     my $key_size = length $printable_key;
     my $value_size = length $printable_value;
 
