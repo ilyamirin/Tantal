@@ -26,7 +26,7 @@ show_errors: 1
 # OR TINY KITTENS SHALL DIE WITH LOTS OF SUFFERING
 auto_reload: 0
 
-path_to_storage: './storage'
-path_to_index: './index'
+path_to_storage: './'
+path_to_index: './'
 max_elements: 10000000000
 

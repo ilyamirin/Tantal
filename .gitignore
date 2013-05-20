@@ -1,3 +1,5 @@
 storage
 index
 *.log
+*.index
+*.store
