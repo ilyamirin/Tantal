@@ -12,6 +12,8 @@ use Tie::Cache;
 
 # -----init-----
 
+info 'Tantal is started ' . localtime(time);
+
 tie (my %cached_index, 'Tie::Cache', config->{max_elements}, { Debug => 0 });
 
 opendir(my $dh, config->{path_to_index});
@@ -51,12 +53,14 @@ sub get_value {
 sub insert_value {
     my ($collection, $key, $value) = @_;
     
+    my $murmur = murmur_hash($key);
+    return 'ALREADY EXISTED' if $cached_index{$collection}{$murmur};
+
     my $storage = config->{path_to_storage} . $collection . '.store';
     touch $storage unless -e $storage;
     my $index = config->{path_to_index} . $collection . '.index';
     touch $index unless -e $index;
     
-    my $murmur = murmur_hash($key);
     my $offset = -s $storage;
     my $printable_key = compress(pack('u', $key));  
     my $printable_value = compress(pack('u', $value));
@@ -72,6 +76,8 @@ sub insert_value {
     print $fh pack('L4', $murmur, $offset, $key_size, $value_size); 
     close $fh;
     $cached_index{$collection}{$murmur} = [$offset, $key_size, $value_size];    
+
+    return 'OK';
 }
 
 get '/:collection/:key' => sub {
@@ -81,8 +87,7 @@ get '/:collection/:key' => sub {
 
 post '/:collection' => sub {
     info params->{key} . ' POSTed';
-    insert_value(params->{collection}, params->{key}, decode_base64 params->{value});
-    return 'OK';
+    return insert_value(params->{collection}, params->{key}, decode_base64 params->{value});
 };
 
 dance;
